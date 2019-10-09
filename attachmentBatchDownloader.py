@@ -45,7 +45,6 @@ def main():
     if not messages:
         print('No messages found.')
     else:
-        print('mgs:')
         for msg in messages:
             try:
                 message = service.users().messages().get(userId='me', id=msg['id']).execute()
@@ -65,9 +64,10 @@ def main():
                         else:
                             file_data = None
                         if file_data:
-                            path = ''.join(['/home/pi/testipy/', part['filename']])
-                            with open(path, 'wb') as f:
-                                f.write(file_data)
+                            if part['mimeType'] == 'image/jpeg':
+                                path = ''.join(['/home/pi/testipy/', part['filename']])
+                                with open(path, 'wb') as f:
+                                    f.write(file_data)
             except:
                 print('vituiks men')
 
