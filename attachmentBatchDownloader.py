@@ -5,6 +5,7 @@ from __future__ import print_function
 import pickle
 import base64
 import os.path
+import json
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
@@ -13,10 +14,15 @@ from apiclient import errors
 # If modifying these scopes, delete the file token.pickle.
 SCOPES = ['https://www.googleapis.com/auth/gmail.readonly']
 
+
 def main():
     """Shows basic usage of the Gmail API.
     Lists the user's Gmail labels.
     """
+    alreadyRead = []
+    if os.path.exists('alreadyRead.json'):
+        with open('alreadyRead.json', 'r') as json_file:
+            alreadyRead = json.load(json_file)
     creds = None
     # The file token.pickle stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
@@ -39,15 +45,21 @@ def main():
     service = build('gmail', 'v1', credentials=creds)
 
     # Call the Gmail API
-    results = service.users().messages().list(userId='me',labelIds = ['SENT']).execute()
+    results = service.users().messages().list(
+        userId='me', labelIds=['SENT']).execute()
     messages = results.get('messages', [])
+    list_of_read_ids = alreadyRead
 
     if not messages:
         print('No messages found.')
     else:
         for msg in messages:
+            if msg['id'] in list_of_read_ids:
+                continue
+            list_of_read_ids.append(msg['id'])
             try:
-                message = service.users().messages().get(userId='me', id=msg['id']).execute()
+                message = service.users().messages().get(
+                    userId='me', id=msg['id']).execute()
                 parts = [message['payload']]
                 while parts:
                     part = parts.pop()
@@ -55,21 +67,29 @@ def main():
                         parts.extend(part['parts'])
                     if part.get('filename'):
                         if 'data' in part['body']:
-                            file_data = base64.urlsafe_b64decode(part['body']['data'].encode('UTF-8'))
+                            file_data = base64.urlsafe_b64decode(
+                                part['body']['data'].encode('UTF-8'))
                         elif 'attachmentId' in part['body']:
                             attachment = service.users().messages().attachments().get(
                                 userId='me', messageId=message['id'], id=part['body']['attachmentId']
                             ).execute()
-                            file_data = base64.urlsafe_b64decode(attachment['data'].encode('UTF-8'))
+                            file_data = base64.urlsafe_b64decode(
+                                attachment['data'].encode('UTF-8'))
                         else:
                             file_data = None
                         if file_data:
                             if part['mimeType'] == 'image/jpeg':
-                                path = ''.join(['/home/pi/testipy/', message['id'], '_', part['filename']])
+                                path = ''.join(
+                                    ['/home/pi/testipy/', message['id'], '_', part['filename']])
                                 with open(path, 'wb') as f:
                                     f.write(file_data)
             except:
                 print('Could not get payload from message')
+
+    with open('alreadyRead.json', 'w') as output:
+        dumped = json.dumps(list_of_read_ids)
+        json.dump(dumped, output)
+
 
 if __name__ == '__main__':
     main()
