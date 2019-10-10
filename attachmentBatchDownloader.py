@@ -7,6 +7,8 @@ import base64
 import os.path
 import ast
 import json
+import piexif
+import datetime
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
@@ -74,6 +76,14 @@ def main():
                 message = service.users().messages().get(
                     userId='me', id=msg['id']).execute()
                 parts = [message['payload']]
+                times = message['internalDate']
+                timeas = times[:10]
+
+                try:
+                    timestamp = datetime.datetime.fromtimestamp(int(timeas))
+                except:
+                    print("Timestamp creation failed")
+
                 while parts:
                     part = parts.pop()
                     if part.get('parts'):
@@ -97,11 +107,24 @@ def main():
                                     ['/home/pi/work_ssd/email1/images/', message['id'], '_', part['filename']])
                                 with open(path, 'wb') as f:
                                     f.write(file_data)
+                                getExif(timestamp, path)
             except:
                 print('Could not get payload from message')
 
     with open('alreadyRead.json', 'w') as output:
         json.dump(list_of_read_ids, output)
+
+
+def getExif(timestamp, filename):
+    formatted_timestamp = timestamp.strftime("%Y:%m:%d %H:%M:%S")
+    exif_ifd = {piexif.ExifIFD.DateTimeOriginal: formatted_timestamp}
+    exif_dict = {"Exif": exif_ifd}
+    exif_bytes = piexif.dump(exif_dict)
+    try:
+        piexif.insert(exif_bytes, filename)
+    except:
+        print("Exif insert failed")
+    return
 
 
 if __name__ == '__main__':
