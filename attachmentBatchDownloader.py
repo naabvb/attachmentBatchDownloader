@@ -39,7 +39,7 @@ def main():
     service = build('gmail', 'v1', credentials=creds)
 
     # Call the Gmail API
-    results = service.users().messages().list(userId='me',labelIds = ['INBOX']).execute()
+    results = service.users().messages().list(userId='me',labelIds = ['SENT']).execute()
     messages = results.get('messages', [])
 
     if not messages:
@@ -65,11 +65,11 @@ def main():
                             file_data = None
                         if file_data:
                             if part['mimeType'] == 'image/jpeg':
-                                path = ''.join(['/home/pi/testipy/', part['filename']])
+                                path = ''.join(['/home/pi/testipy/', message['id'], '_', part['filename']])
                                 with open(path, 'wb') as f:
                                     f.write(file_data)
             except:
-                print('vituiks men')
+                print('Could not get payload from message')
 
 if __name__ == '__main__':
     main()
