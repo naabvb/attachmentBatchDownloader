@@ -48,6 +48,13 @@ def main():
     results = service.users().messages().list(
         userId='me', labelIds=['SENT']).execute()
     messages = results.get('messages', [])
+
+    while 'nextPageToken' in results:
+        page_token = results['nextPageToken']
+        results = service.users().messages().list(userId='me', labelIds=[
+            'SENT'], pageToken=page_token).execute()
+        messages.extend(results['messages'])
+
     list_of_read_ids = alreadyRead
 
     if not messages:
@@ -78,9 +85,9 @@ def main():
                         else:
                             file_data = None
                         if file_data:
-                            if part['mimeType'] == 'image/jpeg':
+                            if part['mimeType'] == 'image/jpeg' or str(part['filename']).endswith(".jpg") or str(part['filename']).endswith(".JPG"):
                                 path = ''.join(
-                                    ['/home/pi/testipy/', message['id'], '_', part['filename']])
+                                    ['/home/pi/work_ssd/email1/images/', message['id'], '_', part['filename']])
                                 with open(path, 'wb') as f:
                                     f.write(file_data)
             except:
