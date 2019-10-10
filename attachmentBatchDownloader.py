@@ -5,6 +5,7 @@ from __future__ import print_function
 import pickle
 import base64
 import os.path
+import ast
 import json
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -23,6 +24,11 @@ def main():
     if os.path.exists('alreadyRead.json'):
         with open('alreadyRead.json', 'r') as json_file:
             alreadyRead = json.load(json_file)
+            if type(alreadyRead) is not list:
+                try:
+                    alreadyRead = ast.literal_eval(alreadyRead)
+                except:
+                    print("Type translation failed")
     creds = None
     # The file token.pickle stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
@@ -86,6 +92,7 @@ def main():
                             file_data = None
                         if file_data:
                             if part['mimeType'] == 'image/jpeg' or str(part['filename']).endswith(".jpg") or str(part['filename']).endswith(".JPG"):
+                                print(part['filename'])
                                 path = ''.join(
                                     ['/home/pi/work_ssd/email1/images/', message['id'], '_', part['filename']])
                                 with open(path, 'wb') as f:
@@ -94,8 +101,7 @@ def main():
                 print('Could not get payload from message')
 
     with open('alreadyRead.json', 'w') as output:
-        dumped = json.dumps(list_of_read_ids)
-        json.dump(dumped, output)
+        json.dump(list_of_read_ids, output)
 
 
 if __name__ == '__main__':
