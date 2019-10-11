@@ -78,6 +78,7 @@ def main():
                 parts = [message['payload']]
                 times = message['internalDate']
                 timeas = times[:10]
+                string_epoch = times
 
                 try:
                     timestamp = datetime.datetime.fromtimestamp(int(timeas))
@@ -104,10 +105,10 @@ def main():
                             if part['mimeType'] == 'image/jpeg' or str(part['filename']).endswith(".jpg") or str(part['filename']).endswith(".JPG"):
                                 print(part['filename'])
                                 path = ''.join(
-                                    ['/home/pi/work_ssd/email1/images/', message['id'], '_', part['filename']])
+                                    ['/home/pi/work_ssd/email1/images/', message['id'], '_', string_epoch, '_', part['filename']])
                                 with open(path, 'wb') as f:
                                     f.write(file_data)
-                                getExif(timestamp, path)
+                                setExif(timestamp, path)
             except:
                 print('Could not get payload from message')
 
@@ -115,12 +116,12 @@ def main():
         json.dump(list_of_read_ids, output)
 
 
-def getExif(timestamp, filename):
-    formatted_timestamp = timestamp.strftime("%Y:%m:%d %H:%M:%S")
-    exif_ifd = {piexif.ExifIFD.DateTimeOriginal: formatted_timestamp}
-    exif_dict = {"Exif": exif_ifd}
-    exif_bytes = piexif.dump(exif_dict)
+def setExif(timestamp, filename):
     try:
+        formatted_timestamp = timestamp.strftime("%Y:%m:%d %H:%M:%S")
+        exif_ifd = {piexif.ExifIFD.DateTimeOriginal: formatted_timestamp}
+        exif_dict = {"Exif": exif_ifd}
+        exif_bytes = piexif.dump(exif_dict)
         piexif.insert(exif_bytes, filename)
     except:
         print("Exif insert failed")
