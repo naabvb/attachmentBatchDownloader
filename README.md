@@ -1,5 +1,3 @@
 # Email attachment batch downloader service
 
-WIP
-
-Service that listens to arriving emails and batch downloads image attachments
+Service for listening arriving emails and batch downloading image attachments
