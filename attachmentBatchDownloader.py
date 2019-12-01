@@ -4,17 +4,22 @@
 from __future__ import print_function
 import pickle
 import base64
+import collections
 import os.path
 import ast
 import json
 import piexif
 import datetime
+from subprocess import call
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
+from apiclient import errors
 
 # If modifying these scopes, delete the file token.pickle.
 SCOPES = ['https://mail.google.com/']
+# CHANGE ME
+BASE_PATH = '/home/pi/work_ssd/emailx/'
 
 
 def main():
@@ -22,8 +27,8 @@ def main():
     Lists the user's Gmail labels.
     """
     alreadyRead = []
-    if os.path.exists('alreadyRead.json'):
-        with open('alreadyRead.json', 'r') as json_file:
+    if os.path.exists(BASE_PATH + 'alreadyRead.json'):
+        with open(BASE_PATH + 'alreadyRead.json', 'r') as json_file:
             alreadyRead = json.load(json_file)
             if type(alreadyRead) is not list:
                 try:
@@ -34,8 +39,8 @@ def main():
     # The file token.pickle stores the user's access and refresh tokens, and is
     # created automatically when the authorization flow completes for the first
     # time.
-    if os.path.exists('token.pickle'):
-        with open('token.pickle', 'rb') as token:
+    if os.path.exists(BASE_PATH + 'token.pickle'):
+        with open(BASE_PATH + 'token.pickle', 'rb') as token:
             creds = pickle.load(token)
     # If there are no (valid) credentials available, let the user log in.
     if not creds or not creds.valid:
@@ -43,10 +48,10 @@ def main():
             creds.refresh(Request())
         else:
             flow = InstalledAppFlow.from_client_secrets_file(
-                'credentials.json', SCOPES)
+                BASE_PATH + 'credentials.json', SCOPES)
             creds = flow.run_local_server(port=0)
         # Save the credentials for the next run
-        with open('token.pickle', 'wb') as token:
+        with open(BASE_PATH + 'token.pickle', 'wb') as token:
             pickle.dump(creds, token)
 
     service = build('gmail', 'v1', credentials=creds)
@@ -61,16 +66,19 @@ def main():
         results = service.users().messages().list(userId='me', labelIds=[
             'SENT'], pageToken=page_token).execute()
         messages.extend(results['messages'])
-
     list_of_read_ids = alreadyRead
+    list_of_old_ids = list_of_read_ids[:]
+    list_of_new_ids = []
 
     if not messages:
         print('No messages found.')
     else:
         for msg in messages:
             if msg['id'] in list_of_read_ids:
+                list_of_new_ids.append(msg['id'])
                 continue
             list_of_read_ids.append(msg['id'])
+            list_of_new_ids.append(msg['id'])
             try:
                 message = service.users().messages().get(
                     userId='me', id=msg['id']).execute()
@@ -104,14 +112,17 @@ def main():
                             if part['mimeType'] == 'image/jpeg' or str(part['filename']).endswith(".jpg") or str(part['filename']).endswith(".JPG"):
                                 print(part['filename'])
                                 path = ''.join(
-                                    ['/home/pi/work_ssd/email1/images/', message['id'], '_', string_epoch, '_', part['filename']])
+                                    [BASE_PATH + 'images/', message['id'], '_', string_epoch, '_', part['filename']])
                                 with open(path, 'wb') as f:
                                     f.write(file_data)
                                 setExif(timestamp, path)
             except:
                 print('Could not get payload from message')
-
-    with open('alreadyRead.json', 'w') as output:
+    if collections.Counter(list_of_old_ids) != collections.Counter(list_of_new_ids):
+        list_of_read_ids = list_of_new_ids
+        print("sync")
+        call([BASE_PATH + 'sync.sh'])
+    with open(BASE_PATH + 'alreadyRead.json', 'w') as output:
         json.dump(list_of_read_ids, output)
 
 
