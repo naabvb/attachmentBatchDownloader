@@ -65,7 +65,10 @@ def main():
         page_token = results['nextPageToken']
         results = service.users().messages().list(userId='me', labelIds=[
             'SENT'], pageToken=page_token).execute()
-        messages.extend(results['messages'])
+        try:
+            messages.extend(results['messages'])
+        except:
+            break
     list_of_read_ids = alreadyRead
     list_of_old_ids = list_of_read_ids[:]
     list_of_new_ids = []
