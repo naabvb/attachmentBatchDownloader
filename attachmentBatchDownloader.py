@@ -19,7 +19,7 @@ from apiclient import errors
 # If modifying these scopes, delete the file token.pickle.
 SCOPES = ['https://mail.google.com/']
 # CHANGE ME
-BASE_PATH = '/home/pi/work_ssd/emailx/'
+BASE_PATH = os.path.dirname(os.path.realpath(__file__)) + '/'
 
 
 def main():
