@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # Listens to arriving emails and batch downloads attachments
-from __future__ import print_function
 import pickle
 import base64
 import collections
@@ -14,18 +13,13 @@ from subprocess import call
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
-from apiclient import errors
 
 # If modifying these scopes, delete the file token.pickle.
 SCOPES = ['https://mail.google.com/']
-# CHANGE ME
 BASE_PATH = os.path.dirname(os.path.realpath(__file__)) + '/'
 
 
 def main():
-    """Shows basic usage of the Gmail API.
-    Lists the user's Gmail labels.
-    """
     alreadyRead = []
     if os.path.exists(BASE_PATH + 'alreadyRead.json'):
         with open(BASE_PATH + 'alreadyRead.json', 'r') as json_file:
@@ -113,7 +107,6 @@ def main():
                             file_data = None
                         if file_data:
                             if part['mimeType'] == 'image/jpeg' or str(part['filename']).endswith(".jpg") or str(part['filename']).endswith(".JPG"):
-                                print(part['filename'])
                                 path = ''.join(
                                     [BASE_PATH + 'images/', message['id'], '_', string_epoch, '_', part['filename']])
                                 with open(path, 'wb') as f:
@@ -123,7 +116,6 @@ def main():
                 print('Could not get payload from message')
     if collections.Counter(list_of_old_ids) != collections.Counter(list_of_new_ids):
         list_of_read_ids = list_of_new_ids
-        print("sync")
         call([BASE_PATH + 'sync.sh'])
     with open(BASE_PATH + 'alreadyRead.json', 'w') as output:
         json.dump(list_of_read_ids, output)
