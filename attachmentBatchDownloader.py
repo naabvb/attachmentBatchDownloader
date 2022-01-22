@@ -13,6 +13,7 @@ from subprocess import call
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
+import updateDbItems
 
 # If modifying these scopes, delete the file token.pickle.
 SCOPES = ['https://mail.google.com/']
@@ -21,12 +22,21 @@ BASE_PATH = os.path.dirname(os.path.realpath(__file__)) + '/'
 
 def main():
     alreadyRead = []
+    filenames = []
     if os.path.exists(BASE_PATH + 'alreadyRead.json'):
         with open(BASE_PATH + 'alreadyRead.json', 'r') as json_file:
             alreadyRead = json.load(json_file)
             if type(alreadyRead) is not list:
                 try:
                     alreadyRead = ast.literal_eval(alreadyRead)
+                except:
+                    print("Type translation failed")
+    if os.path.exists(BASE_PATH + 'filenames.json'):
+        with open(BASE_PATH + 'filenames.json', 'r') as json_file:
+            filenames = json.load(json_file)
+            if type(filenames) is not list:
+                try:
+                    filenames = ast.literal_eval(filenames)
                 except:
                     print("Type translation failed")
     creds = None
@@ -107,16 +117,24 @@ def main():
                             file_data = None
                         if file_data:
                             if part['mimeType'] == 'image/jpeg' or str(part['filename']).endswith(".jpg") or str(part['filename']).endswith(".JPG"):
+                                fullFilename = ''.join(
+                                    [message['id'], '_', string_epoch, '_', part['filename']])
                                 path = ''.join(
-                                    [BASE_PATH + 'images/', message['id'], '_', string_epoch, '_', part['filename']])
+                                    [BASE_PATH + 'images/', fullFilename])
+                                if fullFilename not in filenames:
+                                    filenames.append(fullFilename)
                                 with open(path, 'wb') as f:
                                     f.write(file_data)
                                 setExif(timestamp, path)
             except:
                 print('Could not get payload from message')
+
+    with open(BASE_PATH + 'filenames.json', 'w') as output:
+        json.dump(filenames, output)
     if collections.Counter(list_of_old_ids) != collections.Counter(list_of_new_ids):
         list_of_read_ids = list_of_new_ids
         call([BASE_PATH + 'sync.sh'])
+        updateDbItems.main()
     with open(BASE_PATH + 'alreadyRead.json', 'w') as output:
         json.dump(list_of_read_ids, output)
 
